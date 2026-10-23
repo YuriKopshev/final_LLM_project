@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Ассистент контент-мейкера</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem}
+textarea{width:100%;height:200px;box-sizing:border-box}
+select,button{font-size:1rem;padding:.4rem .8rem;margin:.5rem .5rem .5rem 0}
+pre{white-space:pre-wrap;background:#f4f4f4;padding:1rem;border-radius:6px}
+.badge{display:inline-block;padding:.1rem .6rem;border-radius:10px;font-size:.85rem;margin-right:.4rem}
+.ok{background:#d4f4dd}.warn{background:#ffe2b8}.err{background:#ffd0d0}
+</style></head><body>
+<h2>Ассистент контент-мейкера</h2>
+<textarea id="text" placeholder="Вставьте текст статьи или подкаста (от 50 символов)"></textarea><br>
+<select id="scenario">
+<option value="summary">Саммари для Telegram</option>
+<option value="headlines">5 заголовков + цитаты</option>
+<option value="faq">FAQ</option></select>
+<button onclick="send()">Отправить</button><span id="status"></span>
+<div id="badges"></div><pre id="out"></pre>
+<script>
+async function send(){
+  const out=document.getElementById('out'),b=document.getElementById('badges');
+  out.textContent='Обработка...';b.innerHTML='';
+  const t0=performance.now();
+  const r=await fetch('/process',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({scenario:scenario.value,text:text.value})});
+  const ms=Math.round(performance.now()-t0), d=await r.json();
+  const badge=(c,s)=>`<span class="badge ${c}">${s}</span>`;
+  if(!r.ok){
+    const msg=Array.isArray(d.detail)?d.detail.map(e=>e.msg).join('; '):d.detail;
+    b.innerHTML=badge('err','HTTP '+r.status);out.textContent=msg;return;}
+  b.innerHTML=badge('ok','HTTP 200')+badge(d.cached?'ok':'warn',d.cached?'cache hit':'cache miss')
+    +(d.fallback?badge('err','fallback'):'')+badge('ok',ms+' мс');
+  out.textContent=d.result;
+}
+</script></body></html>
